@@ -17,8 +17,11 @@ ORDER BY
 
 -- 3. Show the first message (row) sender (courier or customer)
 SELECT
-    customer_id,
-    courier_id
+    from_id,
+    CASE from_id
+        WHEN customer_id THEN 'customer'
+        ELSE 'courier'
+    END AS sender
 FROM
     customer_courier_chat_messages
 LIMIT
@@ -28,7 +31,7 @@ LIMIT
 SELECT
     customer_id,
     order_id,
-    count(*)
+    count(*) AS nb_messages
 FROM
     customer_courier_chat_messages
 GROUP BY
@@ -66,21 +69,35 @@ WHERE
 
 -- 7. Show the time (in secs) elapsed until the first message was responded by order_id
 WITH
-    last_record_cte AS (
+    initial_message AS (
+        -- Get the first message (i.e., earliest message_sent_time) for each order_id
         SELECT
-            *,
-            row_number() OVER (
-                PARTITION BY
-                    order_id
-                ORDER BY
-                    message_sent_time
-            ) as RowNumber
+            order_id,
+            from_id AS initiator_id,
+            MIN(message_sent_time) AS first_message_time
         FROM
             customer_courier_chat_messages
+        GROUP BY
+            order_id
+    ),
+    response_message AS (
+        -- Get the first response message for the same order, but from a different sender
+        SELECT
+            c.order_id,
+            MIN(c.message_sent_time) AS first_response_time
+        FROM
+            customer_courier_chat_messages c
+            JOIN initial_message i ON c.order_id = i.order_id
+            AND c.from_id != i.initiator_id -- Ensure it's a response from a different sender
+        GROUP BY
+            c.order_id
     )
+    -- Calculate the time difference in seconds (using strftime to calculate the difference)
 SELECT
-    *
+    i.order_id,
+    (
+        strftime('%s', r.first_response_time) - strftime('%s', i.first_message_time)
+    ) AS response_time_seconds
 FROM
-    last_record_cte
-WHERE
-    RowNumber = 1
+    initial_message i
+    JOIN response_message r ON i.order_id = r.order_id;
