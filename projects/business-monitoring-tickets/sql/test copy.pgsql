@@ -9,18 +9,17 @@ WITH tickets_ordered AS(
     tickets_prev_state_duration AS(
         SELECT
             t_cur.*,
-            extract(epoch from t_cur."CREATED_AT" - t_prev."CREATED_AT") / 60  as previous_state_duration
+            extract(epoch from t_cur."CREATED_AT" - t_prev."CREATED_AT") / 60  as "Previous_State_Duration"
         FROM tickets_ordered t_cur
         LEFT JOIN tickets_ordered t_prev
         ON t_prev."TICKET_ID" = t_cur."TICKET_ID"
         AND t_prev."row_number" = t_cur."row_number" - 1
     )
 SELECT "TICKET_ID",
-    COALESCE(sum("previous_state_duration") FILTER (
-        WHERE
-            "VALUE_PREVIOUS_VALUE" = ANY(ARRAY['new', 'open', 'hold']) 
-    ), 0) as waiting_time
+    "VALUE_STATUS",
+    "VALUE_PREVIOUS_VALUE",
+    "Previous_State_Duration" as "FRT"
 FROM tickets_prev_state_duration
-GROUP BY "TICKET_ID"
+WHERE "VALUE_PREVIOUS_VALUE" = 'new'
 -- SELECT * FROM tickets_prev_state_duration
-LIMIT 1000
+-- LIMIT 1000
