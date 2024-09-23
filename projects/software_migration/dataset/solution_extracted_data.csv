@@ -1,0 +1,5 @@
+id,Channel,Language,CustomFields,Duration,PointsGained,TotalPointsGained
+1,Channel1,en-US,area=Accounting;New=true,01:36:18,69,99
+1,Channel2,en-US,area=Finance;New=false,00:37:21,30,99
+2,Channel3,es-ES,area=Finance;premium=VIP_User;New=false,03:01:47,254,254
+3,Channel2,es-ES,area=Customer_Care;New=false,01:56:34,71,71
