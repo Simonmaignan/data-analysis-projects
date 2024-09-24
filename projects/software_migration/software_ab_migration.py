@@ -38,6 +38,10 @@ def gather_data(
 
     Returns
         The migration mapping, the data to migrate and the validation data frames as a Tuple
+
+    Raises
+        FileNotFoundError if one of the files do not exists
+        ValueError if one of the files do not have the proper format
     """
     logger.info("Gathering the data frames from the files.")
     migration_mapping_xlsx = pd.ExcelFile(xlsx_migration_mapping_path)
@@ -64,6 +68,7 @@ def clean_data(data_to_clean_df: pd.DataFrame) -> pd.DataFrame:
     )
     clean_data_to_migrate_df = data_to_clean_df.copy()
 
+    # TODO: handle conversion errors
     # Cast the Duration field to Timedelta
     clean_data_to_migrate_df["Duration"] = pd.to_timedelta(
         clean_data_to_migrate_df["Duration"]
@@ -82,6 +87,9 @@ def migrate_data(
 
     Returns
         The migrated data frame
+
+    Raises
+        KeyError if the migration_mapping_df does not contain the right columns
     """
     logger.info(
         "Migrate the data frames from SoftwareA to SoftwareB using migration mapping."
@@ -117,6 +125,7 @@ def group_data(data_to_group_df: pd.DataFrame) -> pd.DataFrame:
         The grouped data with the extra computed fields
     """
     logger.info("Migrate the data and compute extra fields.")
+    # TODO: handle possible thrown exceptions
     grouped_data_df = data_to_group_df.groupby(
         ["id", "Channel", "Language", "CustomFields"], as_index=False
     ).sum()
@@ -130,6 +139,15 @@ def group_data(data_to_group_df: pd.DataFrame) -> pd.DataFrame:
 def validate_data(
     data_to_validate_df: pd.DataFrame, validation_data_df: pd.DataFrame
 ) -> None:
+    """Validate the data against a validation dataframe
+
+    Args
+        data_to_validate_df: the data to validate
+        validation_data_df: the validation data to validate against
+
+    Raises
+        AttributeError if the data to validate do not have the right columns or types
+    """
     logger.info("Validate the data.")
     if not data_to_validate_df.columns.equals(validation_data_df.columns):
         raise AttributeError(
@@ -137,9 +155,8 @@ def validate_data(
         )
 
     if not data_to_validate_df.dtypes.equals(validation_data_df.dtypes):
-        raise AttributeError(
-            "Dataframe does not have the right columns count and names"
-        )
+        raise AttributeError("Dataframe does not have the right columns types")
+    # TODO: add more data quality check like duplicate, NaN...
 
 
 def save_data(data_to_save_df: pd.DataFrame, output_csv_path: Path) -> None:
@@ -170,27 +187,49 @@ def main() -> None:
         "dataset/solution_migrated_data.csv",
     )
 
-    migration_mapping_df, data_to_migrate_df, validation_data_df = gather_data(
-        xlsx_migration_mapping_path=migration_mapping_xlsx_path,
-        csv_to_migrate_path=csv_to_migrate_path,
-        csv_validation_data_path=csv_validation_data_path,
-    )
+    try:
+        migration_mapping_df, data_to_migrate_df, validation_data_df = (
+            gather_data(
+                xlsx_migration_mapping_path=migration_mapping_xlsx_path,
+                csv_to_migrate_path=csv_to_migrate_path,
+                csv_validation_data_path=csv_validation_data_path,
+            )
+        )
+    except (FileNotFoundError, ValueError) as error:
+        logger.critical(
+            "Something went wrong while gathering one of the data file. See next log for more details; Exiting!"
+        )
+        logger.error(error)
+        return
 
     # Clean data to migration and validation data
     cleaned_data_to_migrate_df: pd.DataFrame = clean_data(data_to_migrate_df)
     validation_data_df: pd.DataFrame = clean_data(validation_data_df)
 
-    migrated_data_df: pd.DataFrame = migrate_data(
-        data_to_migrate_df=cleaned_data_to_migrate_df,
-        migration_mapping_df=migration_mapping_df,
-    )
+    try:
+        migrated_data_df: pd.DataFrame = migrate_data(
+            data_to_migrate_df=cleaned_data_to_migrate_df,
+            migration_mapping_df=migration_mapping_df,
+        )
+    except KeyError as error:
+        logger.critical(
+            f"Migration mapping is missing the key {error}; Exiting!"
+        )
+        return
 
     final_data_df: pd.DataFrame = group_data(migrated_data_df)
 
-    validate_data(
-        data_to_validate_df=final_data_df,
-        validation_data_df=validation_data_df,
-    )
+    try:
+        validate_data(
+            data_to_validate_df=final_data_df,
+            validation_data_df=validation_data_df,
+        )
+    except AttributeError as error:
+        logger.critical(
+            "The final data does not respect the required attributes; See next log for more details; Exiting!"
+        )
+        logger.error(error)
+        return
 
     save_data(data_to_save_df=final_data_df, output_csv_path=csv_output_path)
 
