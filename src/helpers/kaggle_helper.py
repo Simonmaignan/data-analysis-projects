@@ -1,12 +1,12 @@
-import kaggle
-from typing import Dict, Optional
+"""Helper functions for the data analysis"""
+
 import os
 from pathlib import Path
+from typing import Dict, Optional
+
+import kaggle
 
 kaggle.api.authenticate()
-
-
-dataset_folder = "dataset"
 
 
 def download_dataset_files(

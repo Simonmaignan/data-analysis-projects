@@ -18,9 +18,11 @@ class TelegramAPI:
         self, channel: str, keyword_to_search: Optional[str] = "btc"
     ) -> None:
         # Load secrets
-        secret_file: Path = Path.home() / ".telegram" / "secrets.json"
+        secret_file: Path = Path.home() / ".secrets.json"
         with open(secret_file, encoding="utf8") as secrets_file:
-            self.__secrets: Dict[str, str] = json.load(secrets_file)
+            self.__secrets: Dict[str, str] = json.load(secrets_file)[
+                "telegram"
+            ]
         # Connect to Telegram and create a client
         self.__client = TelegramClient(
             self.__secrets["session_name"],
