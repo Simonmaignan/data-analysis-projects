@@ -61,9 +61,35 @@ WITH spend_age AS (
 FROM transactions)
 SELECT
     Age,
-    AVG(Amount_Spent) AS Avg_Spent
+    ROUND(AVG(Amount_Spent), 2) AS Avg_Spent
 FROM spend_age
 GROUP BY Age
 ORDER BY Avg_Spent DESC
-LIMIT 10
+LIMIT 5
+;
+-- What is the brand with the highest revenue in each sector?
+WITH sector_brand_revenues AS (
+    SELECT
+        Sector,
+        Brand_Name,
+        SUM(Amount_Spent) as Revenues
+    FROM transactions
+    GROUP BY Sector, Brand_Name
+), sector_brand_revenues_rank AS
+(
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY Sector
+            ORDER BY Revenues DESC
+        ) as Revenues_Rank
+    FROM sector_brand_revenues
+)
+SELECT
+    Sector,
+    Brand_Name,
+    ROUND(Revenues, 2) AS Revenues
+FROM sector_brand_revenues_rank
+WHERE Revenues_Rank = 1
+ORDER BY Revenues DESC
 ;
