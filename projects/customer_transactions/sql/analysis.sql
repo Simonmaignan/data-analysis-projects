@@ -53,3 +53,17 @@ GROUP BY Country
 ORDER BY Sales DESC
 LIMIT 1
 ;
+-- At what age do the customers spend the most on average?
+WITH spend_age AS (
+    SELECT
+        Amount_Spent,
+        TIMESTAMPDIFF(YEAR, Date_of_Birth, Transaction_Date) AS Age
+FROM transactions)
+SELECT
+    Age,
+    AVG(Amount_Spent) AS Avg_Spent
+FROM spend_age
+GROUP BY Age
+ORDER BY Avg_Spent DESC
+LIMIT 10
+;
