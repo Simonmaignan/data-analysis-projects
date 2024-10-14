@@ -1,6 +1,9 @@
 USE customer_transactions;
 -- What is the average transaction value?
-SELECT ROUND(AVG(Amount_Spent), 2) AS Avg_Transaction_Value FROM transactions
+SELECT 
+    ROUND(AVG(Amount_Spent), 2) AS Avg_Transaction_Value
+FROM
+    transactions
 ;
 -- What is the total revenue per sector?
 SELECT
