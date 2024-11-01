@@ -12,21 +12,15 @@ In the meantime, below is an example of what you can do with just a few lines of
 from collections import namedtuple
 import math
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 st.title("ducklit :duck:")
 st.write("Query your files with DuckDB")
 st.divider()
 st.subheader("New subheader")
+st.subheader("New subheader 1")
 
-option = st.selectbox(
-    "Select a dimension",
-    ["product_name", "customer_name", "status"],
-    key="option",
-)
-st.write(option)
-
-st.dataframe(pd.DataFrame([1, 2, 3]), height=100)
 
 with st.echo(code_location="below"):
     total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
@@ -44,3 +38,27 @@ with st.echo(code_location="below"):
         x = radius * math.cos(angle)
         y = radius * math.sin(angle)
         data.append(Point(x, y))
+
+df_machine_data_1 = pd.read_parquet("dataset/machine_data_1.parquet")
+st.dataframe(df_machine_data_1.head())
+df_machine_data_2 = pd.read_parquet("dataset/machine_data_2.parquet")
+st.dataframe(df_machine_data_2.head())
+df_machine_num_treatments = df_machine_data_1.groupby("machine_id").agg(
+    {"num_treatments": "sum"}
+)
+st.dataframe(df_machine_num_treatments.head())
+
+bar_chart = px.bar(
+    df_machine_num_treatments,
+    # x="machine_id",
+    # y="num_treatments",
+)
+st.plotly_chart(bar_chart, use_container_width=True)
+st.bar_chart(df_machine_num_treatments, use_container_width=True)
+
+option = st.selectbox(
+    "Select a machine",
+    df_machine_data_1["machine_id"].unique(),
+    key="option",
+)
+st.write(option)
